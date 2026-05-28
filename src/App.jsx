@@ -1,561 +1,454 @@
-import { useState, useEffect, useRef, useMemo, memo } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
-import { ArrowDownIcon, ArrowUpRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { useState, useEffect } from "react";
 
-const projects = [
-  { slug:"asset-tokenization", title:"Asset Tokenization dApp", year:"2026", role:"Blockchain · Full-stack", summary:"Piattaforma decentralizzata per tokenizzare asset reali su Ethereum. Smart contracts ERC-1155 in Solidity con marketplace P2P, offerte vincolanti, distribuzione automatica dei rendimenti e governance pesata per co-proprietari. Frontend React + MetaMask, deploy su Sepolia testnet.", stack:["Solidity","Hardhat","React","TypeScript","Ethereum","IPFS"], link:"https://github.com/davidecorso00/asset-tokenization", confidential:false, span:5 },
-  { slug:"battery-geis", title:"Battery GEIS — MLOps", year:"2026", role:"MLOps · Machine Learning", summary:"Pipeline MLOps per l'analisi di misurazioni GEIS su celle LiCoO₂, basata su dati del Politecnico di Milano (IEEE THERMINIC 2025). Tre task: ricostruzione Leave-One-Out, classificazione young/old e predizione dell'aging. FastAPI + React frontend, MLflow tracking, drift detection, Docker e CI GitHub Actions.", stack:["Python","scikit-learn","FastAPI","React","Docker","MLflow"], link:"https://github.com/davidecorso00/battery-geis-mlops", confidential:false, span:7 },
-  { slug:"privacy-blurrer", title:"Privacy Blurrer", year:"2026", role:"MLOps · Computer Vision", summary:"Pipeline MLOps per segmentazione e anonimizzazione di persone in immagini. U-Net + ResNet34 servita via FastAPI, frontend React/Vite, MLflow tracking + Model Registry, drift detection, Docker, CI GitHub Actions e 37 test pytest con ~75% coverage.", stack:["Python","PyTorch","FastAPI","React","Docker","MLflow"], link:"https://github.com/davidecorso00/privacy-blurrer-mlops", confidential:false, span:12 },
-  { slug:"building-segmentation", title:"Building Segmentation", year:"2025", role:"Computer Vision", summary:"Pipeline di segmentazione semantica pixel-level su immagini satellitari del Massachusetts Buildings Dataset. CNN classifica patch 15×15 px, sliding window produce confidence map e maschera binaria.", stack:["Python","Keras","TensorFlow","scikit-image"], link:"https://github.com/davidecorso00/building-segmentation", confidential:false, span:7 },
-  { slug:"bundesliga", title:"Bundesliga Analysis", year:"2025", role:"Data Viz", summary:"Analisi esplorativa di 14.000+ partite della Bundesliga (1963–2009). Trend storici, heatmap dei risultati esatti, bar chart race animata dei titoli per stagione.", stack:["Python","Pandas","Plotly","Seaborn"], link:"https://github.com/davidecorso00/bundesliga-data-analysis", confidential:false, span:5 },
-  { slug:"european-restaurants", title:"European Restaurants", year:"2025", role:"Data Science", summary:"Analisi di 1M+ ristoranti europei da TripAdvisor. EDA con mappe coropletiche, predizione del rating con Random Forest, Ridge, Bagging e SHAP per l'interpretabilità.", stack:["Python","Pandas","scikit-learn","SHAP"], link:"https://github.com/davidecorso00/european-restaurants-analysis", confidential:false, span:5 },
-  { slug:"fscli", title:"FSCLI", year:"2025", role:"Software Engineering", summary:"Simulatore di file system virtuale con CLI integrata in una GUI JavaFX. Architettura MVC a layer, pattern Observer, i18n, preferenze persistenti. CI/CD GitLab, test JUnit/Mockito/JavaFXTest, code coverage.", stack:["Java","JavaFX","Maven","JUnit","Mockito","GitLab CI"], link:"https://github.com/davidecorso00/fscli", confidential:false, span:12 },
-  { slug:"hanoi-3d", title:"Hanoi Tower 3D", year:"2025", role:"Graphics", summary:"Scena 3D interattiva della Torre di Hanoi in C++ e OpenGL. Ambiente navigabile con telecamere multiple ed engine custom.", stack:["C++","OpenGL","GLFW"], link:"https://github.com/davidecorso00/hanoi-tower", confidential:false, span:5 },
-  { slug:"minesweeper", title:"Minesweeper JavaFX", year:"2025", role:"Desktop · MVC", summary:"Campo minato desktop con architettura MVC a 4 layer (Frontend, Application, Business, Data). Save/load, win/loss detection, i18n EN/IT, layout FXML con preferenze persistenti.", stack:["Java","JavaFX","Maven","FXML","i18n"], link:"https://github.com/davidecorso00/minesweeper-javafx", confidential:false, span:7 },
-  { slug:"scraperty", title:"Scraperty", year:"2025", role:"Full-stack · LLM Engineer", summary:"Web scraper LLM-powered sviluppato per CoStar Group nell'ambito della partnership Virginia Tech × SUPSI. Crawler dinamico con Ollama che trasforma HTML in JSON strutturato con 91% di speedup rispetto a una pipeline ChatGPT equivalente.", stack:["Python","React","Ollama","LLM","Appwrite","Maps API"], link:null, confidential:true, span:12, featured:true },
-  { slug:"exam-scheduler", title:"Exam Scheduler", year:"2024", role:"Algorithms", summary:"Soluzione in C con DP bottom-up su rolling array per minimizzare il tempo totale di N esami con sistema crediti. Quattro versioni dalla ricorsione esponenziale alla soluzione ottimale O(N×K) tempo, O(K) spazio.", stack:["C","Dynamic Programming","O(N×K)"], link:"https://github.com/davidecorso00/exam-scheduler", confidential:false, span:7 },
-];
+const Portfolio = () => {
+  const [activeSection, setActiveSection] = useState("hero");
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredProject, setHoveredProject] = useState(null);
+  const [visibleSections, setVisibleSections] = useState(new Set(["hero"]));
 
-const skills = [
-  { category:"Languages",       items:["Python","Java","C++","C","SQL","JavaScript"] },
-  { category:"ML & AI",         items:["scikit-learn","TensorFlow","Keras","PyTorch","SHAP"] },
-  { category:"Data",            items:["Pandas","NumPy","Plotly","Matplotlib","Seaborn"] },
-  { category:"Frontend",        items:["React","Tailwind","JavaFX","FXML"] },
-  { category:"Backend & Infra", items:["FastAPI","Maven","Docker","MLflow","Appwrite","Git"] },
-  { category:"Testing & CI/CD", items:["JUnit","Mockito","JavaFXTest","pytest","GitLab CI"] },
-  { category:"Graphics",        items:["OpenGL","GLFW"] },
-  { category:"Blockchain",      items:["Solidity","Hardhat","Ethereum"] },
-];
-
-const education = [
-  { institution:"SUPSI — DTI", degree:"Bachelor in Ingegneria Informatica", location:"Lugano, Svizzera", period:"2023 — 2026", courses:["Machine Learning","Deep Learning & Computer Vision","Machine Learning Operations","Natural Language Processing","Security and Privacy by Design","Blockchain Engineering","Software Engineering","Advanced Algorithms"] },
-  { institution:"I.T.I.S. Magistri Cumacini", degree:"Diploma in Informatica e Telecomunicazioni", location:"Como, Italia", period:"2018 — 2023", courses:["Informatica","Sistemi e Reti","Telecomunicazione","Tecnologie e Progettazione di Sistemi","Gestione Progetto"] },
-];
-
-const contacts = [
-  { label:"Email",    value:"corso.davide4@gmail.com",        href:"mailto:corso.davide4@gmail.com",              external:false },
-  { label:"GitHub",   value:"github.com/davidecorso00",       href:"https://github.com/davidecorso00",            external:true },
-  { label:"LinkedIn", value:"linkedin.com/in/davidecorso04",  href:"https://www.linkedin.com/in/davidecorso04/",  external:true },
-];
-
-const navItems = [
-  { id:"about",     label:"About" },
-  { id:"work",      label:"Work" },
-  { id:"skills",    label:"Skills" },
-  { id:"education", label:"Education" },
-  { id:"contact",   label:"Contact" },
-];
-
-const heroInfo  = [
-  { label:"Based in", value:"Porlezza, IT" },
-  { label:"Studying",  value:"SUPSI · Lugano" },
-  { label:"Focus",     value:"ML/AI · Full-stack" },
-];
-
-const aboutInfo = [
-  { label:"Adesso",      value:"Bachelor in Ingegneria Informatica · 3° anno" },
-  { label:"Working on",  value:"Tesi di laurea" },
-  { label:"Interessi",   value:"F1, palestra, attualità, calcio" },
-  { label:"Disponibile", value:"Stage e collaborazioni dal 2026" },
-];
-
-// ─── ANIMATION VARIANTS ──────────────────────────────────────────────────────
-
-const fadeUp = {
-  hidden:  { opacity:0, y:24 },
-  visible: { opacity:1, y:0, transition:{ type:"spring", stiffness:100, damping:20 } },
-};
-const staggerVariant = (delay=0) => ({
-  hidden:  {},
-  visible: { transition:{ staggerChildren:0.06, delayChildren:delay } },
-});
-
-// ─── HOOKS ───────────────────────────────────────────────────────────────────
-
-function useActiveSection(ids) {
-  const [active, setActive] = useState("hero");
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }),
-      { threshold:0.3, rootMargin:"0px 0px -40% 0px" }
-    );
-    ids.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
-    return () => obs.disconnect();
-  }, [ids]);
-  return active;
-}
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = e => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    const handleScroll = () => setScrollY(window.scrollY);
+    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
-  return reduced;
-}
 
-// ─── SHARED COMPONENTS ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleSections((prev) => new Set([...prev, entry.target.id]));
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+    document.querySelectorAll("section[id]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
-function FadeIn({ children, className, as:Tag="div", delay=0 }) {
-  const reduced = useReducedMotion();
-  const El = motion.create(Tag);
-  if (reduced) return <Tag className={className}>{children}</Tag>;
+  const projects = [
+    {
+      title: "Asset Tokenization dApp",
+      description: "Piattaforma decentralizzata per tokenizzare asset reali su Ethereum. Smart contracts ERC-1155 in Solidity con marketplace P2P, offerte vincolanti, distribuzione automatica dei rendimenti e governance pesata per co-proprietari. Frontend React + MetaMask, deploy su Sepolia testnet.",
+      tags: ["Solidity", "Hardhat", "React", "TypeScript", "Ethereum", "IPFS"],
+      emoji: "💎",
+      color: "#a78bfa",
+      link: "https://github.com/davidecorso00/asset-tokenization",
+      confidential: false,
+      year: "2026",
+    },
+    {
+      title: "Battery GEIS — MLOps",
+      description: "Pipeline MLOps per l'analisi di misurazioni GEIS su celle LiCoO₂, basata su dati del Politecnico di Milano (IEEE THERMINIC 2025). Tre task: ricostruzione Leave-One-Out, classificazione young/old e predizione dell'aging. FastAPI + React frontend, MLflow tracking, drift detection, Docker e CI GitHub Actions.",
+      tags: ["Python", "scikit-learn", "FastAPI", "React", "Docker", "MLflow"],
+      emoji: "🔋",
+      color: "#34d399",
+      link: "https://github.com/davidecorso00/battery-geis-mlops",
+      confidential: false,
+      year: "2026",
+    },
+    {
+      title: "Privacy Blurrer",
+      description: "Pipeline MLOps per segmentazione e anonimizzazione di persone in immagini. U-Net + ResNet34 servita via FastAPI, frontend React/Vite, MLflow tracking + Model Registry, drift detection, Docker, CI GitHub Actions e 37 test pytest con ~75% coverage.",
+      tags: ["Python", "PyTorch", "FastAPI", "React", "Docker", "MLflow"],
+      emoji: "🛡️",
+      color: "#60a5fa",
+      link: "https://github.com/davidecorso00/privacy-blurrer-mlops",
+      confidential: false,
+      year: "2026",
+    },
+    {
+      title: "Building Segmentation",
+      description: "Pipeline di segmentazione semantica pixel-level su immagini satellitari del Massachusetts Buildings Dataset. Approccio patch-based (15×15 px): CNN classifica ogni patch come edificio o sfondo, poi sliding window su tutta l'immagine produce confidence map e maschera binaria.",
+      tags: ["Python", "Keras", "TensorFlow", "scikit-image", "Computer Vision"],
+      emoji: "🏗️",
+      color: "#00d4ff",
+      link: "https://github.com/davidecorso00/building-segmentation",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "Bundesliga Analysis",
+      description: "Analisi esplorativa di 14.000+ partite della Bundesliga (1963–2009). Correlazione gol/punti, trend storici del punteggio, heatmap dei risultati esatti, bar chart race animata dei titoli vinti per stagione.",
+      tags: ["Python", "Pandas", "Plotly", "Matplotlib", "Seaborn"],
+      emoji: "⚽",
+      color: "#ff6b35",
+      link: "https://github.com/davidecorso00/bundesliga-data-analysis",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "European Restaurants",
+      description: "Analisi di 1M+ ristoranti europei da TripAdvisor. EDA con mappe coropletiche, distribuzione Michelin, correlazione diete-rating. Predizione del rating con Random Forest, Ridge, Bagging e SHAP per l'interpretabilità.",
+      tags: ["Python", "Pandas", "Plotly", "scikit-learn", "SHAP"],
+      emoji: "🍽️",
+      color: "#00ff88",
+      link: "https://github.com/davidecorso00/european-restaurants-analysis",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "FSCLI",
+      description: "Simulatore di file system virtuale con CLI integrata in una GUI JavaFX. Architettura MVC a layer, pattern Observer, i18n (EN/IT), preferenze persistenti tra sessioni. Include CI/CD GitLab, test unitari/integrazione/GUI con JUnit, Mockito e JavaFXTest, e misurazione della code coverage.",
+      tags: ["Java", "JavaFX", "Maven", "JUnit", "Mockito", "GitLab CI"],
+      emoji: "🖥️",
+      color: "#818cf8",
+      link: "https://github.com/davidecorso00/fscli",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "Hanoi Tower 3D",
+      description: "Scena 3D interattiva della Torre di Hanoi in C++ e OpenGL. Ambiente navigabile con telecamere multiple ed engine custom.",
+      tags: ["C++", "OpenGL", "GLFW", "3D Graphics"],
+      emoji: "🗼",
+      color: "#facc15",
+      link: "https://github.com/davidecorso00/hanoi-tower",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "Minesweeper JavaFX",
+      description: "Campo minato desktop con architettura MVC a 4 layer (Frontend, Application, Business, Data). Gestione completa del gameplay, save/load dello stato, win/loss detection, i18n multilingua (EN/IT) e layout FXML con preferenze persistenti.",
+      tags: ["Java", "JavaFX", "Maven", "MVC", "FXML", "i18n"],
+      emoji: "💣",
+      color: "#f43f5e",
+      link: "https://github.com/davidecorso00/minesweeper-javafx",
+      confidential: false,
+      year: "2025",
+    },
+    {
+      title: "Scraperty",
+      description: "Web scraper LLM-powered sviluppato per CoStar Group nell'ambito della partnership Virginia Tech × SUPSI. Crawler dinamico con Ollama che trasforma HTML in JSON strutturato con 91% di speedup rispetto a una pipeline ChatGPT equivalente.",
+      tags: ["Python", "React", "Ollama", "LLM", "Appwrite", "Maps API"],
+      emoji: "🕷️",
+      color: "#e879f9",
+      link: null,
+      confidential: true,
+      year: "2025",
+    },
+    {
+      title: "Exam Scheduler",
+      description: "Soluzione in C con DP bottom-up su rolling array per minimizzare il tempo totale di N esami con sistema crediti. Quattro versioni dalla ricorsione esponenziale alla soluzione ottimale O(N×K) tempo, O(K) spazio.",
+      tags: ["C", "Dynamic Programming", "Algorithms", "O(N×K)"],
+      emoji: "🎓",
+      color: "#c084fc",
+      link: "https://github.com/davidecorso00/exam-scheduler",
+      confidential: false,
+      year: "2024",
+    },
+  ];
+
+  const skills = [
+    { category: "Languages",       items: ["Python", "Java", "C++", "C", "SQL", "JavaScript"] },
+    { category: "AI / ML",         items: ["scikit-learn", "TensorFlow", "Keras", "PyTorch", "SHAP"] },
+    { category: "Data & Viz",      items: ["Pandas", "NumPy", "Plotly", "Matplotlib", "Seaborn"] },
+    { category: "Frontend",        items: ["React", "JavaFX", "FXML", "Tailwind"] },
+    { category: "Backend & Tools", items: ["FastAPI", "Maven", "Docker", "MLflow", "Appwrite", "Git"] },
+    { category: "Testing & CI/CD", items: ["JUnit", "Mockito", "JavaFXTest", "pytest", "GitLab CI"] },
+    { category: "Graphics",        items: ["OpenGL", "GLFW", "3D Rendering"] },
+    { category: "Blockchain",      items: ["Solidity", "Hardhat", "Ethereum"] },
+  ];
+
+  const navItems = [
+    { id: "hero",      label: "Home" },
+    { id: "about",     label: "About" },
+    { id: "projects",  label: "Progetti" },
+    { id: "skills",    label: "Skills" },
+    { id: "education", label: "Formazione" },
+    { id: "contact",   label: "Contatti" },
+  ];
+
+  const scrollTo = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setMenuOpen(false);
+  };
+
+  const vis = (id) => visibleSections.has(id);
+
   return (
-    <El className={className} initial="hidden" whileInView="visible"
-      viewport={{ once:true, amount:0.2, margin:"0px 0px -10% 0px" }}
-      variants={staggerVariant(delay)}>
-      {children}
-    </El>
-  );
-}
+    <div style={{ fontFamily: "'JetBrains Mono','Fira Code',monospace", background: "#0a0a0f", color: "#e0e0e8", minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box;}
+        html{scroll-behavior:smooth;}
+        ::-webkit-scrollbar{width:5px;}
+        ::-webkit-scrollbar-track{background:#0a0a0f;}
+        ::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:3px;}
+        ::-webkit-scrollbar-thumb:hover{background:#00ff88;}
 
-function FadeItem({ children, className, as:Tag="div" }) {
-  const reduced = useReducedMotion();
-  const El = motion.create(Tag);
-  if (reduced) return <Tag className={className}>{children}</Tag>;
-  return <El className={className} variants={fadeUp}>{children}</El>;
-}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+        @keyframes glitch{0%,100%{text-shadow:2px 0 #00ff88,-2px 0 #ff0055;}25%{text-shadow:-2px 0 #00ff88,2px 0 #ff0055;}50%{text-shadow:2px 2px #00ff88,-2px -2px #ff0055;}75%{text-shadow:-2px 2px #00ff88,2px -2px #ff0055;}}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+        @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+        @keyframes gridDrift{0%{transform:translateY(0);}100%{transform:translateY(40px);}}
+        @keyframes scan{0%{top:-10%;}100%{top:110%;}}
 
-const StatusBadge = memo(function StatusBadge({ label="Open to work", className="" }) {
-  const reduced = useReducedMotion();
-  return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <span className="relative inline-flex h-2 w-2 items-center justify-center">
-        <span className="absolute inline-block h-2 w-2 rounded-full bg-accent" />
-        {!reduced && (
-          <motion.span aria-hidden className="absolute inline-block h-2 w-2 rounded-full bg-accent"
-            initial={{ scale:1, opacity:0.55 }}
-            animate={{ scale:[1,2.6,1], opacity:[0.55,0,0.55] }}
-            transition={{ duration:2.4, ease:"easeOut", repeat:Infinity, repeatDelay:0.2 }} />
-        )}
-      </span>
-      <span className="text-text-muted">{label}</span>
-    </span>
-  );
-});
+        .vis{animation:fadeUp .8s ease-out forwards;}
+        .hid{opacity:0;transform:translateY(40px);}
 
-function MagneticButton({ children, className="", ...props }) {
-  const ref = useRef(null);
-  const reduced = useReducedMotion();
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { type:"spring", stiffness:180, damping:18, mass:0.4 });
-  const sy = useSpring(y, { type:"spring", stiffness:180, damping:18, mass:0.4 });
-  return (
-    <motion.button ref={ref}
-      onMouseMove={e => {
-        if (reduced || !ref.current) return;
-        const r = ref.current.getBoundingClientRect();
-        x.set((e.clientX - r.left - r.width/2) * 0.22);
-        y.set((e.clientY - r.top - r.height/2) * 0.22);
-      }}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      style={reduced ? undefined : { x:sx, y:sy }}
-      className={className} {...props}>
-      {children}
-    </motion.button>
-  );
-}
+        .nav-link{color:#555;text-decoration:none;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;transition:all .3s;cursor:pointer;padding:8px 0;border:none;background:none;font-family:'JetBrains Mono',monospace;position:relative;}
+        .nav-link:hover,.nav-link.on{color:#00ff88;}
+        .nav-link.on::before{content:'>';position:absolute;left:-15px;color:#00ff88;animation:blink 1s infinite;}
 
-function scrollTo(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior:"smooth", block:"start" });
-}
+        .card{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:12px;padding:28px;transition:all .4s cubic-bezier(.22,1,.36,1);cursor:default;position:relative;overflow:hidden;}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac);transform:scaleX(0);transition:transform .4s;transform-origin:left;}
+        .card:hover::before{transform:scaleX(1);}
+        .card:hover{border-color:var(--ac);transform:translateY(-4px);box-shadow:0 8px 40px rgba(0,0,0,.4);}
 
-// ─── SECTIONS ────────────────────────────────────────────────────────────────
+        .tag{background:#1a1a2e;border:1px solid #252540;padding:5px 12px;border-radius:5px;font-size:12px;color:#888;transition:all .3s;display:inline-block;}
+        .tag:hover{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,.04);}
 
-function Hero() {
-  return (
-    <section id="hero" aria-labelledby="hero-title"
-      className="relative scroll-mt-24 px-6 md:px-10 pt-32 pb-24 md:pt-40 md:pb-32">
-      <div className="mx-auto max-w-page grid grid-cols-1 gap-16 md:grid-cols-12 md:gap-10">
-        <FadeIn className="md:col-span-8 flex flex-col">
-          <FadeItem as="h1" id="hero-title" className="text-display font-medium text-text">
-            Davide Corso.
-            <span className="block mt-2 text-text-muted">
-              Costruisco <span className="text-text">sistemi ML</span> e applicazioni full-stack.
-            </span>
-          </FadeItem>
-          <FadeItem className="mt-10 max-w-[56ch] text-base md:text-lg leading-relaxed text-text-muted">
-            Studio Ingegneria Informatica alla SUPSI. Mi occupo di pipeline ML, backend in Python
-            e progetti DevOps — dall'analisi dati alla messa in produzione.
-          </FadeItem>
-          <FadeItem className="mt-12 flex flex-wrap items-center gap-2">
-            <MagneticButton onClick={() => scrollTo("work")}
-              className="group inline-flex items-center gap-2 rounded-full border border-accent bg-accent/15 px-5 py-3 font-mono text-[12px] uppercase tracking-[0.14em] text-accent transition-all hover:bg-accent hover:text-bg hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]">
-              Vedi i progetti
-              <ArrowDownIcon size={14} weight="bold" className="transition-transform group-hover:translate-y-0.5" />
-            </MagneticButton>
-            <a href="mailto:corso.davide4@gmail.com"
-              className="group inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 font-mono text-[12px] uppercase tracking-[0.14em] text-text-muted transition-all hover:border-border-soft hover:text-text">
-              Scrivimi
-              <ArrowUpRightIcon size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </a>
-          </FadeItem>
-        </FadeIn>
-        <FadeIn className="md:col-span-4 md:col-start-9 flex flex-col md:pt-3" delay={0.15}>
-          <FadeItem className="border-t border-border-soft">
-            {heroInfo.map(item => (
-              <div key={item.label} className="flex items-baseline justify-between gap-6 border-b border-border-soft py-3.5">
-                <span className="label-meta">{item.label}</span>
-                <span className="text-sm text-text text-right">{item.value}</span>
+        .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:transparent;color:#00ff88;border:1px solid #00ff88;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;transition:all .3s;text-decoration:none;letter-spacing:1px;}
+        .btn:hover{background:#00ff88;color:#0a0a0f;box-shadow:0 0 30px rgba(0,255,136,.3);}
+        .btn-ghost{border-color:#333;color:#666;}
+        .btn-ghost:hover{background:#1a1a2e;color:#fff;border-color:#555;box-shadow:none;}
+
+        @media(max-width:768px){
+          .desk{display:none!important;}.mob-btn{display:flex!important;}
+          .about-grid{grid-template-columns:1fr!important;}
+          .proj-grid{grid-template-columns:1fr!important;}
+          .skill-grid{grid-template-columns:1fr!important;}
+        }
+        @media(min-width:769px){.mob-btn{display:none!important;}.mob-nav{display:none!important;}}
+      `}</style>
+
+      {/* Background effects */}
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px)",backgroundSize:"40px 40px",zIndex:0,pointerEvents:"none",animation:"gridDrift 8s linear infinite"}}/>
+      <div style={{position:"fixed",top:"-10%",left:0,width:"100%",height:4,background:"linear-gradient(transparent,rgba(0,255,136,.06),transparent)",zIndex:1,pointerEvents:"none",animation:"scan 6s linear infinite"}}/>
+      <div style={{position:"fixed",width:400,height:400,borderRadius:"50%",pointerEvents:"none",zIndex:1,left:mousePos.x-200,top:mousePos.y-200,background:"radial-gradient(circle,rgba(0,255,136,.04) 0%,transparent 70%)",transition:"transform .15s"}}/>
+
+      {/* Navigation */}
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,padding:"16px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",background:scrollY>50?"rgba(10,10,15,.92)":"transparent",backdropFilter:scrollY>50?"blur(20px)":"none",borderBottom:scrollY>50?"1px solid #1a1a2e":"1px solid transparent",transition:"all .3s"}}>
+        <div onClick={()=>scrollTo("hero")} style={{fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:20,color:"#00ff88",letterSpacing:2,cursor:"pointer"}}>{"<D/>"}</div>
+        <div className="desk" style={{display:"flex",gap:28}}>
+          {navItems.map(n=><button key={n.id} className={`nav-link ${activeSection===n.id?"on":""}`} onClick={()=>scrollTo(n.id)}>{n.label}</button>)}
+        </div>
+        <button className="mob-btn" onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"1px solid #1a1a2e",color:"#00ff88",padding:"8px 12px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:14,borderRadius:6}}>{menuOpen?"[x]":"[≡]"}</button>
+      </nav>
+
+      {menuOpen&&(
+        <div className="mob-nav" style={{position:"fixed",top:56,left:0,right:0,background:"rgba(10,10,15,.97)",backdropFilter:"blur(20px)",zIndex:99,padding:"20px 40px",borderBottom:"1px solid #1a1a2e",display:"flex",flexDirection:"column",gap:14}}>
+          {navItems.map(n=><button key={n.id} className={`nav-link ${activeSection===n.id?"on":""}`} onClick={()=>scrollTo(n.id)} style={{textAlign:"left"}}>{n.label}</button>)}
+        </div>
+      )}
+
+      {/* HERO */}
+      <section id="hero" style={{minHeight:"100vh",display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 clamp(24px,8vw,120px)",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:800,margin:"0 auto",textAlign:"center"}}>
+          <div style={{fontSize:14,color:"#00ff88",marginBottom:24,opacity:.8,letterSpacing:2}}>
+            <span style={{animation:"pulse 2s infinite"}}>▌</span> ~/portfolio $
+          </div>
+          <h1 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(44px,7vw,82px)",fontWeight:800,lineHeight:1.05,marginBottom:24,color:"#fff"}}>
+            Davide Corso<br/>
+            <span style={{color:"#00ff88",animation:"glitch 3s infinite",display:"inline-block"}}>Developer</span>
+          </h1>
+          <p style={{fontSize:"clamp(16px,2vw,20px)",color:"#777",maxWidth:560,lineHeight:1.7,marginBottom:40,fontFamily:"'Space Grotesk',sans-serif",margin:"0 auto 40px"}}>
+            Computer Engineering @ SUPSI · ML/AI · Full-Stack<br/>
+            Appassionato di AI e sviluppo software.
+          </p>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",justifyContent:"center"}}>
+            <button className="btn" onClick={()=>scrollTo("projects")}>Vedi i progetti →</button>
+            <button className="btn btn-ghost" onClick={()=>scrollTo("contact")}>Contattami</button>
+          </div>
+        </div>
+        <div style={{position:"absolute",bottom:40,left:"50%",transform:"translateX(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:8,opacity:.35}}>
+          <span style={{fontSize:11,letterSpacing:2}}>SCROLL</span>
+          <div style={{width:1,height:40,background:"linear-gradient(#00ff88,transparent)"}}/>
+        </div>
+      </section>
+
+      {/* ABOUT */}
+      <section id="about" className={vis("about")?"vis":"hid"} style={{minHeight:"70vh",padding:"120px clamp(24px,8vw,120px)",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:48}}>
+            <span style={{color:"#00ff88",fontSize:14}}>01.</span>
+            <h2 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(28px,4vw,40px)",fontWeight:700,color:"#fff"}}>About me</h2>
+            <div style={{flex:1,height:1,background:"#1a1a2e",marginLeft:16}}/>
+          </div>
+          <div className="about-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"start"}}>
+            <div style={{background:"#0f0f1a",border:"1px solid #1a1a2e",borderRadius:12,padding:24,fontSize:14,lineHeight:1.8}}>
+              <div style={{display:"flex",gap:6,marginBottom:14}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:"#ff5f57"}}/>
+                <div style={{width:10,height:10,borderRadius:"50%",background:"#febc2e"}}/>
+                <div style={{width:10,height:10,borderRadius:"50%",background:"#28c840"}}/>
+              </div>
+              <div style={{color:"#444"}}>// about.json</div>
+              <div>{"{"}</div>
+              {[
+                ['"name"',    '"Davide Corso"'],
+                ['"role"',    '"CS Student & Developer"'],
+                ['"university"', '"SUPSI — DTI"'],
+                ['"location"', '"Porlezza (CO), Italia 🇮🇹"'],
+                ['"focus"',   '["ML/AI", "MLOps", "Full-Stack"]'],
+              ].map(([k,v],i)=>(
+                <div key={i} style={{paddingLeft:20}}>
+                  <span style={{color:"#00ff88"}}>{k}</span>: <span style={{color:"#facc15"}}>{v}</span>{i<4?",":""}
+                </div>
+              ))}
+              <div>{"}"}</div>
+            </div>
+            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:16,lineHeight:1.9,color:"#999"}}>
+              <p style={{marginBottom:20}}>
+                Sono Davide, vengo da Porlezza e studio <strong style={{color:"#fff"}}>Ingegneria Informatica</strong> alla SUPSI in Svizzera. Il mio percorso mi ha portato a esplorare il mondo del <strong style={{color:"#00ff88"}}>Machine Learning</strong>, del <strong style={{color:"#00ff88"}}>MLOps</strong> e dello sviluppo full-stack.
+              </p>
+              <p style={{marginBottom:20}}>
+                Mi piace mettermi alla prova con progetti diversi — ogni volta è un'occasione per imparare qualcosa di nuovo e capire un po' meglio come funzionano le cose sotto il cofano.
+              </p>
+              <p>Fuori dal codice, mi trovate in palestra, a guardare la Formula 1 o il calcio, o a discutere di economia e attualità.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROJECTS */}
+      <section id="projects" className={vis("projects")?"vis":"hid"} style={{padding:"120px clamp(24px,8vw,120px)",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:48}}>
+            <span style={{color:"#00ff88",fontSize:14}}>02.</span>
+            <h2 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(28px,4vw,40px)",fontWeight:700,color:"#fff"}}>Progetti</h2>
+            <div style={{flex:1,height:1,background:"#1a1a2e",marginLeft:16}}/>
+          </div>
+          <div className="proj-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(330px,1fr))",gap:24}}>
+            {projects.map((p,i)=>(
+              <div key={i} className="card" style={{"--ac":p.color}} onMouseEnter={()=>setHoveredProject(i)} onMouseLeave={()=>setHoveredProject(null)}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                  <span style={{fontSize:30}}>{p.emoji}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {p.confidential&&(
+                      <span style={{fontSize:9,padding:"2px 7px",borderRadius:3,border:"1px solid #333",color:"#555",letterSpacing:1,fontFamily:"'JetBrains Mono',monospace"}}>🔒 CONFIDENTIAL</span>
+                    )}
+                    <span style={{fontSize:12,color:"#333"}}>/{String(i+1).padStart(2,"0")}</span>
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <h3 style={{fontFamily:"'Outfit',sans-serif",fontSize:20,fontWeight:600,color:"#fff"}}>{p.title}</h3>
+                  <span style={{fontSize:11,color:"#444",fontFamily:"'JetBrains Mono',monospace"}}>{p.year}</span>
+                </div>
+                <p style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:"#666",lineHeight:1.7,marginBottom:18}}>{p.description}</p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {p.tags.map((t,j)=>(
+                    <span key={j} style={{fontSize:11,padding:"3px 10px",borderRadius:4,background:"rgba(255,255,255,.02)",border:`1px solid ${hoveredProject===i?p.color+"44":"#1a1a2e"}`,color:hoveredProject===i?p.color:"#444",fontFamily:"'JetBrains Mono',monospace",transition:"all .3s",letterSpacing:.5}}>{t}</span>
+                  ))}
+                </div>
+                <div style={{marginTop:18,paddingTop:14,borderTop:"1px solid #141425",display:"flex",gap:16,alignItems:"center"}}>
+                  {p.confidential?(
+                    <span style={{fontSize:12,color:"#3a3a3a",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1}}>// source not available</span>
+                  ):(
+                    <a href={p.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"#444",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1,textDecoration:"none",transition:"color .3s"}} onMouseEnter={(e)=>e.currentTarget.style.color=p.color} onMouseLeave={(e)=>e.currentTarget.style.color="#444"}>GitHub →</a>
+                  )}
+                </div>
               </div>
             ))}
-            <div className="flex items-baseline justify-between gap-6 border-b border-border-soft py-3.5">
-              <span className="label-meta">Status</span>
-              <StatusBadge label="Open · 2026" className="text-sm" />
-            </div>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function ProjectCard({ project }) {
-  const reduced = useReducedMotion();
-
-  const article = (
-    <article className="group relative flex h-full flex-col justify-between overflow-hidden border border-border-soft bg-surface p-8 md:p-10 card-block hover:border-border">
-      {project.featured && (
-        <span aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
-      )}
-      <header className="flex items-start justify-between gap-6">
-        <span className="label-meta">
-          {project.year}
-          <span aria-hidden className="text-text-dim mx-2">/</span>
-          {project.role}
-        </span>
-        {project.confidential && (
-          <span aria-label="Codice sorgente non disponibile pubblicamente"
-            className="inline-flex items-center gap-1.5 label-meta text-text-dim">
-            <LockSimpleIcon size={10} weight="bold" />
-            Confidential
-          </span>
-        )}
-      </header>
-      <div className="mt-8">
-        <h3 className="text-xl md:text-2xl font-medium tracking-tight text-text leading-[1.1]">
-          {project.title}
-        </h3>
-        <p className="mt-4 text-sm md:text-[15px] leading-relaxed text-text-muted">
-          {project.summary}
-        </p>
-      </div>
-      <footer className="mt-8 flex flex-col gap-4 pt-5 border-t border-border-soft">
-        <ul className="flex flex-wrap gap-x-3 gap-y-1.5 text-[12px] text-text-faint">
-          {project.stack.map((s,i) => (
-            <li key={s} className="inline-flex items-center gap-3">
-              {s}
-              {i < project.stack.length-1 && <span aria-hidden className="text-text-dim">·</span>}
-            </li>
-          ))}
-        </ul>
-        {project.confidential ? (
-          <span className="font-mono text-[11px] text-text-dim">source private</span>
-        ) : (
-          <a href={project.link} target="_blank" rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="group/link self-start inline-flex items-center gap-1.5 rounded-full border border-accent bg-accent/15 px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-accent transition-all hover:bg-accent hover:text-bg hover:shadow-[0_0_16px_rgba(16,185,129,0.2)]">
-            GitHub
-            <ArrowUpRightIcon size={12} weight="bold" className="transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-          </a>
-        )}
-      </footer>
-    </article>
-  );
-
-  if (reduced) return <div>{article}</div>;
-  return (
-    <motion.div variants={fadeUp} whileHover={{ y:-3 }}
-      transition={{ type:"spring", stiffness:200, damping:22 }}>
-      {article}
-    </motion.div>
-  );
-}
-
-function Work() {
-  return (
-    <section id="work" aria-labelledby="work-title"
-      className="relative scroll-mt-24 border-t border-border-soft px-6 md:px-10 py-24 md:py-32">
-      <div className="mx-auto max-w-page">
-        <FadeIn className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-16">
-          <FadeItem className="md:col-span-2">
-            <div className="sticky top-28 flex items-baseline gap-3">
-              <span className="label-meta">Work</span>
-              <span aria-hidden className="h-px flex-1 bg-border-soft" />
-            </div>
-            <h2 id="work-title" className="sr-only">Work</h2>
-          </FadeItem>
-          <FadeItem className="md:col-span-10">
-            <FadeIn className="grid grid-cols-1 sm:grid-cols-2 gap-6" style={{ gridAutoRows:"1fr" }}>
-              {projects.map((p,i) => <ProjectCard key={p.slug} project={p} index={i} />)}
-            </FadeIn>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function About() {
-  return (
-    <section id="about" aria-labelledby="about-title"
-      className="relative scroll-mt-24 border-t border-border-soft px-6 md:px-10 py-24 md:py-32">
-      <div className="mx-auto max-w-page">
-        <FadeIn className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-16">
-          <FadeItem className="md:col-span-3">
-            <div className="sticky top-28 flex items-baseline gap-3">
-              <span className="label-meta">About</span>
-              <span aria-hidden className="h-px flex-1 bg-border-soft" />
-            </div>
-            <h2 id="about-title" className="sr-only">About</h2>
-          </FadeItem>
-          <div className="md:col-span-6 space-y-6 text-base md:text-lg leading-relaxed text-text-muted">
-            <FadeItem as="p">
-              Vengo da Porlezza, sul lago di Lugano, e studio Ingegneria Informatica alla{" "}
-              <span className="text-text">SUPSI</span> in Svizzera. Il percorso mi ha portato
-              dall'analisi dati al machine learning, fino al deployment di sistemi in produzione.
-            </FadeItem>
-            <FadeItem as="p">
-              Mi piace lavorare su problemi diversi tra loro — un giorno una pipeline di computer
-              vision su immagini satellitari, il giorno dopo un algoritmo di programmazione dinamica
-              in C, poi un frontend React che interroga un LLM. Ogni progetto è una scusa per
-              capire un livello più giù come funzionano le cose.
-            </FadeItem>
-            <FadeItem as="p">
-              Fuori dal codice mi trovate in palestra, a guardare la Formula 1 o il calcio, o a
-              discutere di economia e attualità.
-            </FadeItem>
           </div>
-          <FadeItem className="md:col-span-3">
-            <ul className="border-t border-border-soft">
-              {aboutInfo.map(item => (
-                <li key={item.label} className="border-b border-border-soft py-4">
-                  <div className="label-meta mb-1.5">{item.label}</div>
-                  <div className="text-sm text-text leading-snug">{item.value}</div>
-                </li>
-              ))}
-            </ul>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function Skills() {
-  return (
-    <section id="skills" aria-labelledby="skills-title"
-      className="relative scroll-mt-24 border-t border-border-soft px-6 md:px-10 py-24 md:py-32">
-      <div className="mx-auto max-w-page">
-        <FadeIn className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-16">
-          <FadeItem className="md:col-span-3">
-            <div className="sticky top-28 flex items-baseline gap-3">
-              <span className="label-meta">Stack</span>
-              <span aria-hidden className="h-px flex-1 bg-border-soft" />
-            </div>
-            <h2 id="skills-title" className="sr-only">Stack</h2>
-          </FadeItem>
-          <FadeItem className="md:col-span-9">
-            <ul className="border-t border-border-soft">
-              {skills.map(cat => (
-                <li key={cat.category}
-                  className="grid grid-cols-1 gap-3 border-b border-border-soft py-5 md:grid-cols-12 md:items-baseline md:gap-6">
-                  <span className="md:col-span-3 label-meta">{cat.category}</span>
-                  <div className="md:col-span-9 flex flex-wrap gap-x-5 gap-y-2 text-sm md:text-base text-text">
-                    {cat.items.map((item,i) => (
-                      <span key={item} className="inline-flex items-center gap-5">
-                        {item}
-                        {i < cat.items.length-1 && <span aria-hidden className="text-text-dim">·</span>}
-                      </span>
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function Education() {
-  return (
-    <section id="education" aria-labelledby="education-title"
-      className="relative scroll-mt-24 border-t border-border-soft px-6 md:px-10 py-24 md:py-32">
-      <div className="mx-auto max-w-page">
-        <FadeIn className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-16">
-          <FadeItem className="md:col-span-3">
-            <div className="sticky top-28 flex items-baseline gap-3">
-              <span className="label-meta">Education</span>
-              <span aria-hidden className="h-px flex-1 bg-border-soft" />
-            </div>
-            <h2 id="education-title" className="sr-only">Education</h2>
-          </FadeItem>
-          <FadeItem className="md:col-span-9">
-            <ol className="relative border-l border-border-soft pl-8 md:pl-12">
-              {education.map((edu,i) => (
-                <li key={edu.institution} className={`relative ${i < education.length-1 ? "pb-12 md:pb-16" : ""}`}>
-                  <span aria-hidden className="absolute -left-[37px] md:-left-[49px] top-2 inline-flex h-2 w-2 items-center justify-center">
-                    <span className="h-2 w-2 rounded-full bg-bg ring-1 ring-border" />
-                    {i === 0 && <span className="absolute h-2 w-2 rounded-full bg-accent" />}
-                  </span>
-                  <div className="flex flex-wrap items-baseline justify-between gap-4 mb-3">
-                    <h3 className="text-xl md:text-2xl font-medium tracking-tight text-text">{edu.degree}</h3>
-                    <span className="label-meta">{edu.period}</span>
-                  </div>
-                  <div className="flex items-baseline gap-3 mb-4">
-                    <span className="text-text-muted">{edu.institution}</span>
-                    <span className="text-text-dim">·</span>
-                    <span className="text-text-muted">{edu.location}</span>
-                  </div>
-                  <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-text-faint">
-                    {edu.courses.map((c,j) => (
-                      <li key={c} className="inline-flex items-center gap-4">
-                        {c}
-                        {j < edu.courses.length-1 && <span aria-hidden className="text-text-dim">·</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ol>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function Contact() {
-  return (
-    <section id="contact" aria-labelledby="contact-title"
-      className="relative scroll-mt-24 border-t border-border-soft px-6 md:px-10 py-24 md:py-32">
-      <div className="mx-auto max-w-page">
-        <FadeIn className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-16">
-          <FadeItem className="md:col-span-5">
-            <div className="flex items-baseline gap-3 mb-10">
-              <span className="label-meta">Get in touch</span>
-              <span aria-hidden className="h-px flex-1 bg-border-soft" />
-            </div>
-            <h2 id="contact-title" className="sr-only">Get in touch</h2>
-            <p className="text-2xl md:text-3xl leading-tight tracking-tight text-text mb-6 max-w-[20ch]">
-              Cerco uno stage o una collaborazione per il 2026.
-            </p>
-            <p className="text-base text-text-muted max-w-[42ch] mb-8">
-              Se stai costruendo qualcosa interessante in ambito ML o full-stack, scrivimi due
-              righe — rispondo sempre.
-            </p>
-            <StatusBadge label="Disponibile da Settembre 2026" />
-          </FadeItem>
-          <FadeItem className="md:col-span-7">
-            <ul className="border-t border-border-soft">
-              {contacts.map(c => (
-                <li key={c.label} className="border-b border-border-soft">
-                  <a href={c.href} {...(c.external ? { target:"_blank", rel:"noopener noreferrer" } : {})}
-                    className="group flex items-center justify-between gap-6 py-6 md:py-8 transition-colors">
-                    <div className="flex items-baseline gap-6">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-faint w-16">{c.label}</span>
-                      <span className="text-lg md:text-2xl tracking-tight text-text group-hover:text-accent transition-colors">{c.value}</span>
-                    </div>
-                    <ArrowUpRightIcon size={20} weight="bold"
-                      className="text-text-dim transition-all group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </FadeItem>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-// ─── NAV ─────────────────────────────────────────────────────────────────────
-
-function Nav() {
-  const allIds = useMemo(() => ["hero", ...navItems.map(n => n.id)], []);
-  const active = useActiveSection(allIds);
-  const reduced = useReducedMotion();
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 24);
-    fn();
-    window.addEventListener("scroll", fn, { passive:true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-
-  return (
-    <header className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${scrolled ? "bg-bg/90 backdrop-blur-md border-b border-border-soft" : ""}`}>
-      <nav className="mx-auto flex h-14 max-w-page items-center justify-between px-6 md:px-10">
-        <button onClick={() => scrollTo("hero")}
-          className="font-mono text-[11px] uppercase tracking-[0.18em] text-text hover:text-accent transition-colors">
-          Davide<span className="text-text-faint">/</span>Corso
-        </button>
-        <ul className="hidden md:flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.18em]">
-          {navItems.map(item => {
-            const isActive = active === item.id;
-            return (
-              <li key={item.id} className="relative">
-                <button onClick={() => scrollTo(item.id)} aria-current={isActive ? "true" : undefined}
-                  className={`relative px-3 py-2 transition-colors ${isActive ? "text-text" : "text-text-faint hover:text-text-muted"}`}>
-                  {item.label}
-                  {isActive && !reduced && (
-                    <motion.span layoutId="nav-underline"
-                      className="absolute inset-x-3 -bottom-0.5 h-px bg-accent"
-                      transition={{ type:"spring", stiffness:400, damping:32 }} />
-                  )}
-                  {isActive && reduced && (
-                    <span className="absolute inset-x-3 -bottom-0.5 h-px bg-accent" />
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        <a href="mailto:corso.davide4@gmail.com"
-          className="hidden md:inline-flex font-mono text-[11px] uppercase tracking-[0.18em] text-text-muted hover:text-accent transition-colors">
-          corso.davide4@gmail.com
-        </a>
-        <button onClick={() => scrollTo("contact")}
-          className="md:hidden font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-          Contact
-        </button>
-      </nav>
-    </header>
-  );
-}
-
-// ─── APP ─────────────────────────────────────────────────────────────────────
-
-export default function App() {
-  return (
-    <>
-      <Nav />
-      <main>
-        <Hero />
-        <About />
-        <Work />
-        <Skills />
-        <Education />
-        <Contact />
-      </main>
-      <footer className="border-t border-border-soft px-6 md:px-10 py-8">
-        <div className="mx-auto max-w-page flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim">
-            Davide Corso · {new Date().getFullYear()}
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-dim">
-            Built with React · Tailwind · Framer Motion
-          </span>
         </div>
+      </section>
+
+      {/* SKILLS */}
+      <section id="skills" className={vis("skills")?"vis":"hid"} style={{padding:"120px clamp(24px,8vw,120px)",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:48}}>
+            <span style={{color:"#00ff88",fontSize:14}}>03.</span>
+            <h2 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(28px,4vw,40px)",fontWeight:700,color:"#fff"}}>Tech Stack</h2>
+            <div style={{flex:1,height:1,background:"#1a1a2e",marginLeft:16}}/>
+          </div>
+          <div className="skill-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:20}}>
+            {skills.map((s,i)=>(
+              <div key={i} style={{background:"#0f0f1a",border:"1px solid #1a1a2e",borderRadius:12,padding:24}}>
+                <h4 style={{fontSize:12,color:"#00ff88",letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>{s.category}</h4>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                  {s.items.map((it,j)=><span key={j} className="tag">{it}</span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* EDUCATION */}
+      <section id="education" className={vis("education")?"vis":"hid"} style={{padding:"120px clamp(24px,8vw,120px)",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:48}}>
+            <span style={{color:"#00ff88",fontSize:14}}>04.</span>
+            <h2 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(28px,4vw,40px)",fontWeight:700,color:"#fff"}}>Formazione</h2>
+            <div style={{flex:1,height:1,background:"#1a1a2e",marginLeft:16}}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:24}}>
+            <div style={{background:"#0f0f1a",border:"1px solid #1a1a2e",borderRadius:12,padding:40}}>
+              <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <div style={{width:56,height:56,borderRadius:12,background:"linear-gradient(135deg,#00ff88,#00d4ff)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#0a0a0f",fontFamily:"'Outfit',sans-serif",flexShrink:0}}>S</div>
+                <div style={{flex:1,minWidth:250}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                    <h3 style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:600,color:"#fff",marginBottom:4}}>SUPSI — DTI</h3>
+                    <span style={{fontSize:12,color:"#555",fontFamily:"'JetBrains Mono',monospace"}}>2023 — 2026</span>
+                  </div>
+                  <p style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:15,color:"#00ff88",marginBottom:6}}>Bachelor in Ingegneria Informatica</p>
+                  <p style={{fontSize:12,color:"#444",marginBottom:20}}>Scuola Universitaria Professionale della Svizzera Italiana</p>
+                  <p style={{fontSize:12,color:"#555",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Corsi principali</p>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    {["Machine Learning","Deep Learning & Computer Vision","Machine Learning Operations","Natural Language Processing","Security and Privacy by Design","Blockchain Engineering","Software Engineering","Advanced Algorithms"].map((c,i)=>
+                      <span key={i} className="tag">{c}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{background:"#0f0f1a",border:"1px solid #1a1a2e",borderRadius:12,padding:40}}>
+              <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <div style={{width:56,height:56,borderRadius:12,background:"linear-gradient(135deg,#facc15,#ff6b35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#0a0a0f",fontFamily:"'Outfit',sans-serif",flexShrink:0}}>M</div>
+                <div style={{flex:1,minWidth:250}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                    <h3 style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:600,color:"#fff",marginBottom:4}}>I.T.I.S. Magistri Cumacini</h3>
+                    <span style={{fontSize:12,color:"#555",fontFamily:"'JetBrains Mono',monospace"}}>2018 — 2023</span>
+                  </div>
+                  <p style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:15,color:"#facc15",marginBottom:6}}>Diploma in Informatica e Telecomunicazioni</p>
+                  <p style={{fontSize:12,color:"#444",marginBottom:20}}>Como, Italia</p>
+                  <p style={{fontSize:12,color:"#555",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Materie principali</p>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    {["Informatica","Sistemi e Reti","Telecomunicazione","Tecnologie e Progettazione di Sistemi","Gestione Progetto"].map((c,i)=>
+                      <span key={i} className="tag">{c}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className={vis("contact")?"vis":"hid"} style={{padding:"120px clamp(24px,8vw,120px) 80px",position:"relative",zIndex:2}}>
+        <div style={{maxWidth:700,margin:"0 auto",textAlign:"center"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:48}}>
+            <span style={{color:"#00ff88",fontSize:14}}>05.</span>
+            <h2 style={{fontFamily:"'Outfit',sans-serif",fontSize:"clamp(28px,4vw,40px)",fontWeight:700,color:"#fff"}}>Contatti</h2>
+          </div>
+          <p style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:18,color:"#777",lineHeight:1.8,marginBottom:40}}>
+            Hai un progetto interessante o vuoi collaborare?<br/>Scrivimi, sono sempre aperto a nuove opportunità.
+          </p>
+          <div style={{display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
+            <a href="mailto:corso.davide4@gmail.com" className="btn">📧 Email</a>
+            <a href="https://github.com/davidecorso00" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">GitHub</a>
+            <a href="https://www.linkedin.com/in/davidecorso04/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">LinkedIn</a>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{padding:"40px clamp(24px,8vw,120px)",borderTop:"1px solid #1a1a2e",textAlign:"center",position:"relative",zIndex:2}}>
+        <p style={{fontSize:12,color:"#2a2a3e"}}>Progettato e sviluppato da Davide Corso · {new Date().getFullYear()}</p>
       </footer>
-    </>
+    </div>
   );
-}
+};
+
+export default Portfolio;
