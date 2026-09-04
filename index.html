@@ -1,14 +1,101 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/portfolio/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>portfolio</title>
-    <script type="module" crossorigin src="/portfolio/assets/index-Dtxixhw3.js"></script>
-    <link rel="stylesheet" crossorigin href="/portfolio/assets/index-BonkH8qp.css">
+
+    <title>Davide Corso — AI/ML Engineer · SUPSI</title>
+    <meta
+      name="description"
+      content="Studente di ingegneria informatica alla SUPSI, Svizzera. Pipeline MLOps, computer vision, sistemi basati su LLM. Disponibile dalla conclusione del bachelor, 2026."
+    />
+    <meta name="author" content="Davide Corso" />
+    <link rel="canonical" href="https://davidecorso00.github.io/portfolio/" />
+    <link rel="icon" type="image/svg+xml" href="/portfolio/favicon.svg" />
+
+    <!-- La barra di sistema segue il tema della pagina, in entrambi i versi. -->
+    <meta name="theme-color" content="#f8f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141310" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content="Davide Corso — AI/ML Engineer" />
+    <meta
+      property="og:description"
+      content="Pipeline MLOps, computer vision, sistemi basati su LLM. SUPSI 2026."
+    />
+    <meta property="og:url" content="https://davidecorso00.github.io/portfolio/" />
+    <meta property="og:image" content="https://davidecorso00.github.io/portfolio/og.png" />
+    <meta property="og:locale" content="it_IT" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Davide Corso",
+        "jobTitle": "AI/ML Engineer",
+        "alumniOf": {
+          "@type": "CollegeOrUniversity",
+          "name": "SUPSI — Dipartimento tecnologie innovative"
+        },
+        "knowsAbout": [
+          "Machine Learning",
+          "MLOps",
+          "Computer Vision",
+          "FastAPI",
+          "PyTorch",
+          "Docker"
+        ],
+        "email": "mailto:corso.davide4@gmail.com",
+        "url": "https://davidecorso00.github.io/portfolio/",
+        "sameAs": [
+          "https://github.com/davidecorso00",
+          "https://www.linkedin.com/in/davidecorso04/"
+        ]
+      }
+    </script>
+
+    <!--
+      Unico script inline del sito. Gira PRIMA del primo paint e risolve due
+      cose che React non può risolvere senza produrre un lampo:
+      1. il tema, letto da localStorage o dalle preferenze di sistema;
+      2. la classe .js, che abilita lo stato iniziale nascosto del reveal —
+         senza JavaScript la classe non esiste e la pagina è tutta visibile.
+    -->
+    <script>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add("js");
+        var t = null;
+        try {
+          t = localStorage.getItem("theme");
+        } catch (e) {}
+        d.dataset.theme =
+          t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      })();
+    </script>
+    <script type="module" crossorigin src="/portfolio/assets/index-7fwJ0_Hy.js"></script>
+    <link rel="stylesheet" crossorigin href="/portfolio/assets/index-CCT0DF_Y.css">
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      GitHub Pages non fa server-side rendering: senza questo blocco, chi apre
+      la pagina con JavaScript disattivato — o un crawler che non lo esegue —
+      trova un div vuoto. React lo sostituisce al mount.
+    -->
+    <div id="root">
+      <h1>Davide Corso</h1>
+      <p>AI/ML Engineer — Bachelor in Ingegneria Informatica, SUPSI (2023 — 2026).</p>
+      <p>
+        Costruisco sistemi di machine learning completi, dal modello all'API che lo
+        serve: esperimenti tracciati, servizi containerizzati, test automatici in
+        integrazione continua.
+      </p>
+      <p><a href="mailto:corso.davide4@gmail.com">corso.davide4@gmail.com</a></p>
+      <p>
+        <a href="https://github.com/davidecorso00">GitHub</a> ·
+        <a href="https://www.linkedin.com/in/davidecorso04/">LinkedIn</a>
+      </p>
+    </div>
   </body>
 </html>
