@@ -1,165 +1,467 @@
 @import "tailwindcss";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/geist-mono/wght.css";
+
+/* Il tema è pilotato da un attributo, non da una media query: il toggle deve
+   poter vincere in entrambe le direzioni. Lo script pre-paint in index.html
+   scrive data-theme prima del primo frame. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, "JetBrains Mono", monospace;
+  /* ---------------------------------------------------------- famiglie */
+  --font-sans: "Archivo Variable", "Archivo Fallback", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono Fallback", ui-monospace, Menlo, monospace;
 
-  --color-bg: #0d0d10;
-  --color-surface: #16161a;
-  --color-border: #26262c;
-  --color-border-soft: #1d1d22;
-  --color-text: #ededed;
-  --color-text-muted: #a8a8b0;
-  --color-text-faint: #5b5b66;
-  --color-text-dim: #3f3f48;
-  --color-accent: #10b981;
-  --color-accent-soft: #10b9811f;
+  /* ---------------------------------------------------------- colore
+     Neutri su una sola tinta (OKLCH h=85) così i grigi non virano.
+     I rapporti in coda sono misurati su --color-paper / --color-paper-2. */
+  --color-paper:         #f8f5f1; /* fondo pagina                                */
+  --color-paper-2:       #eeebe5; /* unica superficie rientrante, senza bordo    */
+  --color-rule:          #cdcac4; /* filetto 1px                      1.50 : 1   */
+  --color-rule-strong:   #afaca5; /* filetto di testata               2.09 : 1   */
+  --color-ink-3:         #6d6860; /* metadati mono             5.09 / 4.65 : 1   */
+  --color-ink-2:         #504c44; /* prosa secondaria          7.86 / 7.18 : 1   */
+  --color-ink:           #211e17; /* testo primario           15.30 / 13.98 : 1  */
+  --color-accent:        #b73c1c; /* vermiglio                 5.26 / 4.80 : 1   */
+  --color-accent-strong: #9c2500; /* stato attivo              7.21 / 6.59 : 1   */
 
-  --text-display: clamp(3rem, 7vw, 5.75rem);
-  --text-display--line-height: 0.95;
-  --text-display--letter-spacing: -0.04em;
+  /* ---------------------------------------------------------- tipografia
+     Dieci gradini. Se ne serve un undicesimo, il componente è sbagliato. */
+  --text-display: clamp(2.5rem, 1.167rem + 5.93vw, 6.5rem);       /*  40 → 104 */
+  --text-display--line-height: 0.9;
+  --text-display--letter-spacing: -0.035em;
 
-  --container-page: 1120px;
+  --text-email: clamp(1.625rem, 1.25rem + 1.67vw, 2.75rem);       /*  26 →  44 */
+  --text-email--line-height: 1.05;
+  --text-email--letter-spacing: -0.028em;
+
+  --text-h2: clamp(1.375rem, 1.208rem + 0.74vw, 1.875rem);        /*  22 →  30 */
+  --text-h2--line-height: 1.12;
+  --text-h2--letter-spacing: -0.02em;
+
+  --text-lead: clamp(1.25rem, 1.083rem + 0.74vw, 1.75rem);        /*  20 →  28 */
+  --text-lead--line-height: 1.32;
+  --text-lead--letter-spacing: -0.016em;
+
+  --text-title: clamp(1.125rem, 1rem + 0.56vw, 1.5rem);           /*  18 →  24 */
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.014em;
+
+  --text-body: clamp(1rem, 0.979rem + 0.09vw, 1.0625rem);         /*  16 →  17 */
+  --text-body--line-height: 1.58;
+  --text-body--letter-spacing: -0.005em;
+
+  --text-small: 0.875rem;                                          /*  14 fisso */
+  --text-small--line-height: 1.5;
+
+  --text-data: 0.8125rem;                                          /*  13 mono  */
+  --text-data--line-height: 1.45;
+  --text-data--letter-spacing: 0.015em;
+
+  --text-label-lg: 0.75rem;                                        /*  12 mono  */
+  --text-label-lg--line-height: 1.2;
+  --text-label-lg--letter-spacing: 0.12em;
+
+  --text-label: 0.6875rem;                                         /*  11 mono  */
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.14em;
+
+  /* ---------------------------------------------------------- struttura */
+  --container-page: 88.5rem;   /* 1416 */
+  --breakpoint-sm: 30rem;      /*  480 */
+  --breakpoint-md: 45rem;      /*  720 */
+  --breakpoint-lg: 64rem;      /* 1024 */
+  --breakpoint-xl: 80rem;      /* 1280 */
+  --breakpoint-2xl: 100rem;    /* 1600 */
+  --radius-xs: 2px;            /* unico raggio del sito, solo sul focus */
+
+  --ease-micro:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-reveal: cubic-bezier(0.2, 0, 0, 1);
+  --ease-panel:  cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Token di geometria e durata: servono al CSS custom, non a Tailwind, quindi
+   stanno fuori da @theme per non generare utility inutili. */
+:root {
+  --page-pad: clamp(1.25rem, 5.56vw, 5rem);            /*  20 →  80 */
+  --gutter: clamp(1rem, 0.75rem + 1.11vw, 1.75rem);    /*  16 →  28 */
+  --space-section: clamp(4.5rem, 3rem + 6.67vw, 9rem); /*  72 → 144 */
+  --nav-h: 56px;
+
+  --grid-line: rgba(33, 30, 23, 0.055);
+  --selection: rgba(183, 60, 28, 0.14);
+
+  --dur-micro: 120ms;
+  --dur-hover: 200ms;
+  --dur-reveal: 320ms;
+  --dur-panel: 420ms;
+
+  color-scheme: light;
+}
+
+/* Inversione rigorosa. Nessun #000 e nessun #fff: entrambi bruciano sui
+   pannelli OLED e fanno vibrare i filetti da 1px. */
+:root[data-theme="dark"] {
+  --color-paper:         #141310;
+  --color-paper-2:       #201f1b;
+  --color-rule:          #3b3935;
+  --color-rule-strong:   #55524d;
+  --color-ink-3:         #97938c;
+  --color-ink-2:         #bdbab3;
+  --color-ink:           #e9e6e0;
+  --color-accent:        #ed8b6c;
+  --color-accent-strong: #fea387;
+
+  --grid-line: rgba(233, 230, 224, 0.05);
+  --selection: rgba(237, 139, 108, 0.18);
+
+  color-scheme: dark;
+}
+
+/* Fallback a metriche allineate: azzera il CLS sul nome a 104px senza
+   preload (Vite hasha i woff2, un href statico punterebbe al nulla). */
+@font-face {
+  font-family: "Archivo Fallback";
+  src: local("Arial"), local("Helvetica Neue"), local("Liberation Sans");
+  size-adjust: 99.3%;
+  ascent-override: 88.4%;
+  descent-override: 21.1%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Geist Mono Fallback";
+  src: local("Menlo"), local("Consolas"), local("DejaVu Sans Mono"), local("Courier New");
+  size-adjust: 99.7%;
+  ascent-override: 100.8%;
+  descent-override: 29.6%;
+  line-gap-override: 0%;
 }
 
 @layer base {
   html {
-    scroll-behavior: smooth;
+    /* clip e non hidden: hidden creerebbe uno scroll container e romperebbe
+       ogni position:sticky della pagina. */
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--color-bg);
-    color: var(--color-text);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.58;
+    font-synthesis-weight: none;
+  }
+
+  :root[data-theme="dark"] body {
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    font-weight: 500;
+    text-wrap: balance;
   }
 
   ::selection {
-    background-color: var(--color-accent-soft);
-    color: var(--color-accent);
+    background-color: var(--selection);
+  }
+
+  /* La navigazione è fissa: senza questo, un anchor porta il titolo di
+     sezione sotto la barra. */
+  :target,
+  section[id],
+  [id="top"] {
+    scroll-margin-top: calc(var(--nav-h) + 16px);
+  }
+
+  /* Ogni cifra del sito vive in mono tabulare: è ciò che allinea le colonne
+     e dà alla pagina il registro del documento. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-xs);
   }
 
   ::-webkit-scrollbar {
-    width: 4px;
+    width: 8px;
+    height: 8px;
   }
-
   ::-webkit-scrollbar-track {
-    background: var(--color-bg);
+    background: transparent;
   }
-
   ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 2px;
+    background: var(--color-rule-strong);
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-accent);
+    background: var(--color-ink-3);
   }
 }
 
-@layer utilities {
-  .max-w-page {
+@layer components {
+  /* La griglia madre. Ogni riga della pagina la ripete, quindi tutte le celle
+     cadono sulle stesse linee senza subgrid e senza hack da 100vw. */
+  .grid-page {
+    width: 100%;
     max-width: var(--container-page);
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline: auto;
+    padding-inline: var(--page-pad);
+    display: grid;
+    column-gap: var(--gutter);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .text-display {
-    font-size: var(--text-display);
-    line-height: var(--text-display--line-height);
-    letter-spacing: var(--text-display--letter-spacing);
+  @media (min-width: 45rem) {
+    .grid-page {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
   }
 
-  .label-meta {
+  /* Griglia annidata per la colonna di contenuto (colonne 4–12 della madre).
+     Nove colonne con lo stesso gutter e la stessa larghezza totale: le celle
+     cadono esattamente sulle linee della griglia madre, quindi sul raster,
+     senza ricorrere a subgrid. */
+  .grid-content {
+    display: block;
+  }
+
+  @media (min-width: 64rem) {
+    .grid-content {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      column-gap: var(--gutter);
+    }
+  }
+
+  /* Il filetto separa le sezioni a tutta finestra; dentro le sezioni separa
+     le righe sull'ampiezza della colonna di contenuto. */
+  .rule-top {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .section-pad {
+    padding-block: var(--space-section);
+  }
+
+  /* Gli assi di Archivo si guidano con font-weight e font-stretch, mai con
+     font-variation-settings: quella proprietà non compone nella cascata e
+     spegnerebbe <strong>. */
+  .t-display { font-stretch: 88%; font-weight: 500; }
+  .t-h2      { font-stretch: 92%; font-weight: 500; }
+  .t-title   { font-stretch: 96%; font-weight: 500; }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .label {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .label-lg {
+    font-family: var(--font-mono);
+    font-size: var(--text-label-lg);
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* Il filo si accende, il testo no: l'accento resta sotto il budget di due
+     occorrenze per schermata. */
+  .link-rule {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
+    transition: text-decoration-color var(--dur-hover) var(--ease-micro);
+  }
+  .link-rule:hover,
+  .link-rule:focus-visible {
+    text-decoration-color: var(--color-accent);
+  }
+
+  /* Accordion senza misurare altezze in JS: il contenuto resta sempre nel
+     DOM, quindi indicizzabile e raggiungibile con Cmd+F. */
+  .panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--dur-panel) var(--ease-panel);
+  }
+  .panel > * {
+    overflow: hidden;
+    min-height: 0;
+    opacity: 0;
+    transition: opacity 200ms var(--ease-micro);
+  }
+  .panel[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+  .panel[data-open="true"] > * {
+    opacity: 1;
+    transition-delay: 80ms;
+  }
+
+  /* Il segno + diventa − perdendo l'asta verticale, non ruotando di 45°:
+     la rotazione produrrebbe una × e cambierebbe il significato. */
+  .pm-v {
+    transform-origin: center;
+    transition: transform var(--dur-hover) var(--ease-micro);
+  }
+  .pm[data-open="true"] .pm-v {
+    transform: scaleY(0);
+  }
+
+  /* Figura 1. Le geometrie stanno nel viewBox, i colori qui: così il disegno
+     segue il tema senza una seconda copia del markup. vector-effect tiene il
+     tratto a 1px reale a qualunque scala. */
+  .fig {
+    overflow: visible;
+  }
+  .fig-box {
+    fill: var(--color-paper);
+    stroke: var(--color-ink);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .fig-box--accent {
+    stroke: var(--color-accent);
+    stroke-width: 1.5;
+  }
+  .fig-line {
+    fill: none;
+    stroke: var(--color-ink);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .fig-line--dash {
+    stroke: var(--color-ink-3);
+    stroke-dasharray: 3 3;
+  }
+  .fig-head {
+    fill: var(--color-ink);
+    stroke: none;
+  }
+  .fig-label {
     font-family: var(--font-mono);
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--color-text-faint);
+    letter-spacing: 0.06em;
+    fill: var(--color-ink-2);
+  }
+  .fig-label--start {
+    text-anchor: start;
   }
 
-  .bg-bg {
-    background-color: var(--color-bg);
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
-  .bg-surface {
-    background-color: var(--color-surface);
+  .skip-link {
+    position: absolute;
+    left: var(--page-pad);
+    top: -100px;
+    z-index: 200;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    padding: 10px 16px;
+    transition: top var(--dur-micro) var(--ease-micro);
   }
-
-  .border-border {
-    border-color: var(--color-border);
+  .skip-link:focus {
+    top: 12px;
   }
+}
 
-  .border-border-soft {
-    border-color: var(--color-border-soft);
+/* --------------------------------------------------------------------------
+   Reveal e reduced-motion restano FUORI da ogni @layer.
+   Il CSS non-layered vince su qualunque layer di Tailwind: se lo stato
+   iniziale finisse in utilities e l'override in base, chi ha reduced-motion
+   attivo vedrebbe una pagina vuota.
+   Lo stato iniziale è gated da .js, messo dallo script pre-paint: senza
+   JavaScript la classe non esiste e tutto è visibile per costruzione.
+   -------------------------------------------------------------------------- */
+.reveal {
+  transition:
+    opacity var(--dur-reveal) var(--ease-reveal),
+    transform var(--dur-reveal) var(--ease-reveal);
+}
+
+.js .reveal {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.js .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
+}
 
-  .text-text {
-    color: var(--color-text);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
-
-  .text-text-muted {
-    color: var(--color-text-muted);
+  .js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
   }
+}
 
-  .text-text-faint {
-    color: var(--color-text-faint);
+@media print {
+  .js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
   }
-
-  .text-text-dim {
-    color: var(--color-text-dim);
+  .no-print {
+    display: none !important;
   }
-
-  .text-accent {
-    color: var(--color-accent);
+  :root {
+    --color-paper: #fff;
+    --color-paper-2: #fff;
+    --color-ink: #000;
+    --color-ink-2: #222;
+    --color-ink-3: #444;
+    --color-rule: #bbb;
   }
-
-  .bg-accent {
-    background-color: var(--color-accent);
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #444;
   }
-
-  .bg-accent-soft {
-    background-color: var(--color-accent-soft);
+  .panel {
+    grid-template-rows: 1fr !important;
   }
-
-  .ring-border {
-    --tw-ring-color: var(--color-border);
-  }
-
-  .hover\:text-accent:hover {
-    color: var(--color-accent);
-  }
-
-  .hover\:border-border:hover {
-    border-color: var(--color-border);
-  }
-
-  .card-block {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.045),
-      0 2px 8px  rgba(0, 0, 0, 0.35),
-      0 6px 28px rgba(0, 0, 0, 0.30);
-    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
-  }
-
-  .card-block:hover {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.065),
-      0 4px 16px  rgba(0, 0, 0, 0.45),
-      0 12px 40px rgba(0, 0, 0, 0.38);
-  }
-
-  .via-accent\/60 {
-    --tw-gradient-via: color-mix(in srgb, var(--color-accent) 60%, transparent);
-  }
-
-  .bg-surface\/40 {
-    background-color: color-mix(in srgb, var(--color-surface) 40%, transparent);
-  }
-
-  .border-accent\/40 {
-    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  .panel > * {
+    opacity: 1 !important;
   }
 }

@@ -6,6 +6,15 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "ghidoni-server",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "cd / && cd /Users/davidecorso/Desktop/GHIDONI/git/OfficineGhidoniSA_ChatBot && PYTHONPATH=. .venv/bin/python -m ogsa.web.server"
+      ],
+      "port": 8000
     }
   ]
 }
